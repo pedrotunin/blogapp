@@ -28,11 +28,15 @@
         app.use(passport.session())
         app.use(flash())
     // Middleware
+
         app.use((req, res, next) => {
             res.locals.success_msg = req.flash("success_msg")
             res.locals.error_msg = req.flash("error_msg")
             res.locals.error = req.flash("error")
             res.locals.user = req.user || null
+            if(req.user){
+                res.locals.ehAdmin = req.user.eAdmin || 0
+            }
             next()
         })
     // Body Parser
@@ -53,7 +57,7 @@
 
 // Rotas
     app.get("/", (req, res) => {
-        Postagem.find().sort({date: "asc"}).populate("categoria").lean().then((postagens) => {
+        Postagem.find().sort({date: "desc"}).populate("categoria").lean().then((postagens) => {
             res.render("index", {postagens: postagens})
         }).catch((err) => {
             req.flash("error_msg", "Houve um erro interno")

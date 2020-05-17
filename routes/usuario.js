@@ -2,10 +2,16 @@ const express = require("express")
 const router = express.Router()
 const mongoose = require("mongoose")
 require("../models/Usuario")
+require("../models/Categoria")
+require("../models/Postagem")
+const Categoria = mongoose.model("categorias")
+const Postagem = mongoose.model("postagens")
 const Usuario = mongoose.model("usuarios")
 const validaCamposUsuario = require("../control/validaCamposUsuario")
+const validaCamposPostagem = require("../control/validaCamposPostagem")
 const bcrypt = require("bcryptjs")
 const passport = require("passport")
+const {usuarioLogado} = require("../helpers/usuarioLogado")
 
 router.get("/registro", (req, res) => {
     res.render("usuarios/registro")
@@ -38,7 +44,7 @@ router.post("/registro", (req, res) => {
 
                             novoUsuario.save().then(() => {
                                 req.flash("success_msg", "Usuário criado com sucesso!")
-                                res.redirect("/")
+                                res.redirect("/usuarios/login")
                             }).catch((err) => {
                                 req.flash("error_msg", "Houve um erro ao criar o usuário, tente novamente!")
                                 res.redirect("/usuarios/registro")
@@ -51,6 +57,41 @@ router.post("/registro", (req, res) => {
         }).catch((err) => {
             console.log(err)
             req.flash("error_msg", "Houve um erro interno")
+            res.redirect("/")
+        })
+    }
+})
+
+router.get("/postagens/add", usuarioLogado, (req, res) => {
+    Categoria.find().lean().then((categorias) => {
+        res.render("usuarios/addpostagem", {categorias: categorias})
+    }).catch((err) => {
+        req.flash("error_msg", "Houve um erro ao carregar o formulário!")
+        res.redirect("/")
+    })
+})
+
+router.post("/postagens/nova", usuarioLogado, (req, res) => {
+    var erros = validaCamposPostagem(req.body)
+
+    if(erros.length > 0) {
+            Categoria.find().lean().then((categorias) => {
+                res.render("usuarios/addpostagem", {categorias: categorias})
+            })
+    }else {
+        const novaPostagem = {
+            titulo: req.body.titulo,
+            slug: req.body.slug,
+            descricao: req.body.descricao,
+            conteudo: req.body.conteudo,
+            categoria: req.body.categoria 
+        }
+
+        new Postagem(novaPostagem).save().then(() => {
+            req.flash("success_msg", "Postagem criada com sucesso!")
+            res.redirect("/")
+        }).catch((err) => {
+            req.flash("error_msg", "Houve um erro ao salvar a postagem, tente novamente!")
             res.redirect("/")
         })
     }
